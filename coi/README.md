@@ -33,6 +33,11 @@ commit-pinned links locate the corresponding historical inputs. Historical
 internal filenames at that commit are audit identifiers, not public database
 release names.
 
+Byte-exact copies of the version-controlled inputs are also preserved in the
+[`source/v1/`](source/v1/) audit snapshot. This keeps the reviewable
+construction decisions available independently of the pipeline repository
+without copying pipeline runtime code.
+
 Meglécz, E. (2023). COInr and mkCOInr: Building and customizing a
 nonredundant barcoding reference database from BOLD and NCBI using a
 semi-automated pipeline. *Molecular Ecology Resources*, 23(4), 933–945.
