@@ -1,2 +1,2 @@
 # RTBioScan-reference-databases
-Versioned, provenance-tracked COI and ITS2 reference databases for RTBioScan, with reproducible construction, integrity verification, and independently released artifacts.
+This repository maintains the COI and ITS2 reference databases distributed for RTBioScan. Each marker is curated, versioned, verified, and released independently, with documented source data, filtering decisions, construction methods, checksums, and provenance. Large FASTA and BLAST database files are distributed through immutable GitHub Releases and archived separately in Zenodo; they are not committed to Git.
