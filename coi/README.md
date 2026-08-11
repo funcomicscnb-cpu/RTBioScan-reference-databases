@@ -15,6 +15,24 @@ The complete construction history, reliability filtering, record counts,
 hashes, and citation are documented in
 [`v1/rtbioscan_coi_canonical_v1_README.md`](v1/rtbioscan_coi_canonical_v1_README.md).
 
+## Frozen COI v1 construction source
+
+The COI v1 provenance identifies its policy, audit, construction, and legacy
+source inputs by SHA-256. Their historical source is commit-pinned at
+[RTBioScan commit `f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd`](https://github.com/funcomicscnb-cpu/RTBioScan/commit/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd):
+
+- [policy and audit artifacts](https://github.com/funcomicscnb-cpu/RTBioScan/tree/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/conf/taxonomy_regression);
+- [`build_taxonomy_canonical_fasta.py`](https://github.com/funcomicscnb-cpu/RTBioScan/blob/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/bin/build_taxonomy_canonical_fasta.py);
+- [`build_taxonomy_canonical_blastdb.py`](https://github.com/funcomicscnb-cpu/RTBioScan/blob/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/bin/build_taxonomy_canonical_blastdb.py);
+- [`audit_taxonomy_reference_source_integrity.py`](https://github.com/funcomicscnb-cpu/RTBioScan/blob/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/bin/audit_taxonomy_reference_source_integrity.py);
+- [`validate_taxonomy_reference_base_policy.py`](https://github.com/funcomicscnb-cpu/RTBioScan/blob/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/bin/validate_taxonomy_reference_base_policy.py); and
+- [the legacy reference manifest](https://github.com/funcomicscnb-cpu/RTBioScan/blob/f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd/conf/state_compatibility/reference_manifest_legacy_v1.tsv).
+
+The SHA-256 values in the release provenance remain authoritative; these
+commit-pinned links locate the corresponding historical inputs. Historical
+internal filenames at that commit are audit identifiers, not public database
+release names.
+
 Meglécz, E. (2023). COInr and mkCOInr: Building and customizing a
 nonredundant barcoding reference database from BOLD and NCBI using a
 semi-automated pipeline. *Molecular Ecology Resources*, 23(4), 933–945.

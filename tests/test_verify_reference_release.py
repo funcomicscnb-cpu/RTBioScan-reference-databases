@@ -2,6 +2,7 @@ import gzip
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -22,6 +23,29 @@ EXPECTED_COMMITTED_METADATA_HASHES = {
     "rtbioscan_coi_canonical_v1_excluded_oids.tsv": "c47038a1d2b563c87ea89a760cd5323efb210f89a736bd9acb445c03cb79b744",
     "rtbioscan_coi_canonical_v1_fasta_provenance.tsv": "b479ab7f47c46bee9f056271f19058cec9c34fb7e5cc4932b5679c91e360c69b",
 }
+
+FROZEN_SOURCE_COMMIT = "f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd"
+FROZEN_SOURCE_URLS = (
+    "https://github.com/funcomicscnb-cpu/RTBioScan/commit/" + FROZEN_SOURCE_COMMIT,
+    "https://github.com/funcomicscnb-cpu/RTBioScan/tree/"
+    + FROZEN_SOURCE_COMMIT
+    + "/conf/taxonomy_regression",
+    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
+    + FROZEN_SOURCE_COMMIT
+    + "/bin/build_taxonomy_canonical_fasta.py",
+    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
+    + FROZEN_SOURCE_COMMIT
+    + "/bin/build_taxonomy_canonical_blastdb.py",
+    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
+    + FROZEN_SOURCE_COMMIT
+    + "/bin/audit_taxonomy_reference_source_integrity.py",
+    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
+    + FROZEN_SOURCE_COMMIT
+    + "/bin/validate_taxonomy_reference_base_policy.py",
+    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
+    + FROZEN_SOURCE_COMMIT
+    + "/conf/state_compatibility/reference_manifest_legacy_v1.tsv",
+)
 
 
 def write_gzip(path, content):
@@ -228,6 +252,17 @@ class CommittedMetadataTests(unittest.TestCase):
             if path.is_file()
         }
         self.assertEqual(observed, EXPECTED_COMMITTED_METADATA_HASHES)
+
+    def test_coi_v1_construction_sources_are_commit_pinned(self):
+        readme = (REPOSITORY_ROOT / "coi" / "README.md").read_text(encoding="utf-8")
+        observed = tuple(
+            re.findall(
+                r"https://github\.com/funcomicscnb-cpu/RTBioScan/"
+                r"(?:commit|tree|blob)/[^)\s]+",
+                readme,
+            )
+        )
+        self.assertEqual(observed, FROZEN_SOURCE_URLS)
 
 
 if __name__ == "__main__":
