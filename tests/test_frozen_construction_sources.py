@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -39,6 +40,60 @@ PROVENANCE_LOCATIONS = {
     "source_index_auditor_script": (("fasta", "source_index_auditor_script"),),
     "base_policy_validator_script": (("fasta", "base_policy_validator_script"),),
 }
+EXPECTED_PATHS = {
+    "release_policy": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_release_policy_v1.tsv",
+        "coi/source/v1/policy/release_policy.tsv",
+    ),
+    "base_policy": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_base_repair_policy_v1.tsv",
+        "coi/source/v1/policy/base_policy.tsv",
+    ),
+    "disposition_manifest": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_disposition_v1.tsv",
+        "coi/source/v1/policy/disposition.tsv",
+    ),
+    "disposition_provenance": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_disposition_v1_provenance.tsv",
+        "coi/source/v1/policy/disposition_provenance.tsv",
+    ),
+    "quarantine_projection": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_quarantine_v1.tsv",
+        "coi/source/v1/policy/quarantine_projection.tsv",
+    ),
+    "retained_projection": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_retained_unresolved_v1.tsv",
+        "coi/source/v1/policy/retained_projection.tsv",
+    ),
+    "source_integrity_anomalies": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_source_integrity_v1.tsv",
+        "coi/source/v1/audit/source_integrity.tsv",
+    ),
+    "source_integrity_provenance": (
+        "conf/taxonomy_regression/chain_a_downstream_coi_source_integrity_v1_provenance.tsv",
+        "coi/source/v1/audit/source_integrity_provenance.tsv",
+    ),
+    "legacy_reference_manifest": (
+        "conf/state_compatibility/reference_manifest_legacy_v1.tsv",
+        "coi/source/v1/legacy/reference_manifest_legacy.tsv",
+    ),
+    "fasta_builder_script": (
+        "bin/build_taxonomy_canonical_fasta.py",
+        "coi/source/v1/tools/build_taxonomy_canonical_fasta.py",
+    ),
+    "blastdb_builder_script": (
+        "bin/build_taxonomy_canonical_blastdb.py",
+        "coi/source/v1/tools/build_taxonomy_canonical_blastdb.py",
+    ),
+    "source_index_auditor_script": (
+        "bin/audit_taxonomy_reference_source_integrity.py",
+        "coi/source/v1/tools/audit_taxonomy_reference_source_integrity.py",
+    ),
+    "base_policy_validator_script": (
+        "bin/validate_taxonomy_reference_base_policy.py",
+        "coi/source/v1/tools/validate_taxonomy_reference_base_policy.py",
+    ),
+}
 
 
 def sha256_file(path):
@@ -66,6 +121,18 @@ def read_provenance(path):
         }
 
 
+def archive_inventory(source_root):
+    root_controls = {
+        source_root / "README.md",
+        source_root / "SOURCE_MANIFEST.tsv",
+    }
+    return {
+        path.relative_to(source_root)
+        for path in source_root.rglob("*")
+        if path.is_file() and path not in root_controls
+    }
+
+
 class FrozenConstructionSourceTests(unittest.TestCase):
     def test_manifest_is_complete_and_commit_pinned(self):
         fields, rows = read_manifest()
@@ -81,6 +148,16 @@ class FrozenConstructionSourceTests(unittest.TestCase):
         )
         self.assertEqual({row["source_commit"] for row in rows}, {SOURCE_COMMIT})
         self.assertEqual(
+            {
+                row["provenance_key"]: (
+                    row["source_path"],
+                    row["archived_path"],
+                )
+                for row in rows
+            },
+            EXPECTED_PATHS,
+        )
+        self.assertEqual(
             len({row["archived_path"] for row in rows}),
             len(rows),
         )
@@ -91,11 +168,7 @@ class FrozenConstructionSourceTests(unittest.TestCase):
             Path(row["archived_path"]).relative_to("coi/source/v1")
             for row in rows
         }
-        observed_files = {
-            path.relative_to(SOURCE_ROOT)
-            for path in SOURCE_ROOT.rglob("*")
-            if path.is_file() and path.name not in {"README.md", "SOURCE_MANIFEST.tsv"}
-        }
+        observed_files = archive_inventory(SOURCE_ROOT)
         self.assertEqual(observed_files, expected_files)
         for row in rows:
             archived = REPOSITORY_ROOT / row["archived_path"]
@@ -103,6 +176,29 @@ class FrozenConstructionSourceTests(unittest.TestCase):
             self.assertFalse(archived.is_symlink())
             self.assertRegex(row["sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(sha256_file(archived), row["sha256"])
+
+    def test_nested_control_basenames_are_archive_inventory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source_root = Path(temporary)
+            (source_root / "README.md").write_text("root control\n", encoding="utf-8")
+            (source_root / "SOURCE_MANIFEST.tsv").write_text(
+                "root control\n", encoding="utf-8"
+            )
+            (source_root / "policy").mkdir()
+            (source_root / "nested").mkdir()
+            (source_root / "policy" / "README.md").write_text(
+                "must be inventoried\n", encoding="utf-8"
+            )
+            (source_root / "nested" / "SOURCE_MANIFEST.tsv").write_text(
+                "must be inventoried\n", encoding="utf-8"
+            )
+            self.assertEqual(
+                archive_inventory(source_root),
+                {
+                    Path("policy/README.md"),
+                    Path("nested/SOURCE_MANIFEST.tsv"),
+                },
+            )
 
     def test_archived_hashes_match_frozen_release_provenance(self):
         metadata = REPOSITORY_ROOT / "coi" / "v1"
