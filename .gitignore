@@ -1,0 +1,22 @@
+.DS_Store
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Large reference artifacts belong in GitHub Releases, not Git.
+*.fa
+*.fasta
+*.fna
+*.fa.gz
+*.fasta.gz
+*.fna.gz
+*.ndb
+*.nhr
+*.nin
+*.njs
+*.not
+*.nsq
+*.ntf
+*.nto
+artifact/
+release/
