@@ -1,7 +1,9 @@
 # COI reference database
 
 The COI series is versioned independently from RTBioScan and from the ITS2
-series. Metadata for the current semantic release is in [`v1/`](v1/).
+series. Metadata for the verified historical v1 artifact is in [`v1/`](v1/);
+the marker-scope audit requires a corrected semantic release before new
+publication from this repository.
 
 COI v1 was derived from the deployed
 `COInr98_2024Jun_RioNegro_Brazil` BLAST record stream. Its public-data
@@ -38,9 +40,16 @@ index; see the
 [`COI v1 July artifact chronology audit`](audits/coi_v1_july_artifact_chronology.md).
 They therefore neither verify nor disprove participation of project sequences
 supplied through an earlier input artifact in the 98% clustering run.
-Publication of this database from this repository remains on hold while that
-cluster-membership evidence and the marker scope are audited; the existing
-frozen v1 metadata remains an unchanged historical record.
+The marker-scope review is now complete: all 15 retained records whose
+identifiers name markers other than COI were confirmed from their sequence
+bases to be 28S, COX2, COX3, CYTB, ATP6, or ND genes. See the
+[`COI v1 marker-scope audit`](audits/coi_v1_marker_scope_audit.md). An
+unchanged v1 must therefore not be published from this repository as the
+current corrected COI reference. The correction requires a new semantic
+database version; the existing frozen v1 metadata remains an unchanged
+historical record. Historical participation of individual project sequences
+also remains independently unresolved because the pre-clustering input and
+cluster-membership file have not been recovered.
 
 The frozen v1 release description, downstream reliability filtering, record
 counts, hashes, and citation are documented in
