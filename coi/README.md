@@ -21,13 +21,20 @@ distinct provenance fields and must not be interpreted as a single source
 identity.
 
 The released COI v1 files remain a byte-verified reconstruction of the exact
-deployed BLAST record stream. The exact pre-clustering input, CD-HIT invocation,
-and cluster-membership (`.clstr`) file are not part of the frozen v1 evidence
-currently preserved here. Consequently, participation of individual project
-sequences cannot yet be reconstructed independently from the representative
-FASTA alone. Publication of this database from this repository is on hold while
-that construction chronology and the marker scope are audited; the existing
-frozen v1 metadata remains an unchanged historical record.
+deployed BLAST record stream. A comparison with COInr 2024-05-06 has now shown
+that every sequence difference among their 791,364 shared accessions is an
+exact target-region substring rather than a base substitution or replacement.
+The recovered primer pair and region-selection implementation explain this
+transformation; the evidence and its limits are recorded in the
+[`COI v1 region-selection audit`](audits/coi_v1_region_selection_audit.md).
+
+The exact pre-clustering input, original command log, and cluster-membership
+(`.clstr`) file are not part of the frozen v1 evidence currently preserved
+here. Consequently, participation of individual project sequences still
+cannot be reconstructed independently from the representative FASTA alone.
+Publication of this database from this repository remains on hold while the
+construction chronology and the marker scope are audited; the existing frozen
+v1 metadata remains an unchanged historical record.
 
 The frozen v1 release description, downstream reliability filtering, record
 counts, hashes, and citation are documented in
