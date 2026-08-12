@@ -15,7 +15,7 @@ by metadata committed at its tag.
 
 | Marker | Current semantic release | Repository metadata | Status |
 | --- | --- | --- | --- |
-| COI | `rtbioscan_coi_canonical_v1` | [`coi/v1/`](coi/v1/) | Artifact verified; publication held for remaining chronology and marker-scope audit |
+| COI | `rtbioscan_coi_canonical_v1` | [`coi/v1/`](coi/v1/) | Artifact verified; publication held for cluster-membership and marker-scope audit |
 | ITS2 | Not yet released | [`its2/`](its2/) | Method documented; artifacts pending |
 
 COI and ITS2 share this repository but remain independent release series. Each

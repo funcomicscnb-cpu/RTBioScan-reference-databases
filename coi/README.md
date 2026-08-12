@@ -32,9 +32,15 @@ The exact pre-clustering input, original command log, and cluster-membership
 (`.clstr`) file are not part of the frozen v1 evidence currently preserved
 here. Consequently, participation of individual project sequences still
 cannot be reconstructed independently from the representative FASTA alone.
-Publication of this database from this repository remains on hold while the
-construction chronology and the marker scope are audited; the existing frozen
-v1 metadata remains an unchanged historical record.
+The surviving July 18 loose FASTA and derivative BLAST index have been shown to
+be a malformed post-deployment append, not the input to the July 7 deployed
+index; see the
+[`COI v1 July artifact chronology audit`](audits/coi_v1_july_artifact_chronology.md).
+They therefore neither verify nor disprove participation of project sequences
+supplied through an earlier input artifact in the 98% clustering run.
+Publication of this database from this repository remains on hold while that
+cluster-membership evidence and the marker scope are audited; the existing
+frozen v1 metadata remains an unchanged historical record.
 
 The frozen v1 release description, downstream reliability filtering, record
 counts, hashes, and citation are documented in
