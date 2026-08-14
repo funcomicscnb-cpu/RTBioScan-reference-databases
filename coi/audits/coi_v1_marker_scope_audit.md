@@ -1,21 +1,23 @@
 # COI v1 marker-scope audit
 
-Status: all 15 retained records whose identifiers name non-COI markers are
-confirmed outside COI; an unchanged COI v1 must not be presented as the
-current corrected reference.
+Status: all 15 deployed records whose identifiers name non-COI markers are
+confirmed outside COI and are excluded from corrected COI v1.
 
-This audit resolves the marker-scope hold recorded for COI v1. It does not
-modify the frozen v1 bundle, its provenance, or the deployed RTBioScan
-database. The record-level evidence is frozen in
+This audit supplies the versioned record-level evidence for the corrected-v1
+exclusion policy. It does not alter the deployed RTBioScan database. The
+evidence is preserved in
 [`coi_v1_marker_scope_audit.tsv`](coi_v1_marker_scope_audit.tsv).
 
 ## Scope and identities
 
 The 15 records were found in the deployed
-`COInr98_2024Jun_RioNegro_Brazil` BLAST stream and retained in the canonical
-v1 reconstruction. For every row, the audit records both the deployed legacy
-OID and the OID after v1's 29 earlier exclusions, together with the reference
-ID, stored taxID, sequence length, and sequence SHA-256.
+`COInr98_2024Jun_RioNegro_Brazil` BLAST stream and were present in the
+pre-correction reconstruction after its 29 earlier exclusions. For every row,
+the audit records both the deployed legacy OID and the OID in that intermediate
+reconstruction, together with the reference ID, stored taxID, sequence length,
+and sequence SHA-256. The historical TSV column name `canonical_v1_oid`
+denotes that withdrawn intermediate; these records have no OID in corrected
+v1.
 
 The marker token in the identifier was used only to locate candidates. The
 disposition was determined from sequence evidence:
@@ -53,34 +55,33 @@ A surviving June 27, 2024 regional FASTA,
 contains a different 658-base COI sequence under specimen identifier
 `BCIFO566-13` (sequence SHA-256
 `63dffb01b23b5a542df180e0323b2bed85a11f30ae35da516efbd0e920bcffa9`).
-That sequence and the released 241-base record are not substrings of one
-another. The exact NCBI match identifies the released bases as 28S, while the
+That sequence and the deployed 241-base record are not substrings of one
+another. The exact NCBI match identifies the deployed bases as 28S, while the
 shared specimen token only shows that two marker records existed for the same
-specimen. It is not evidence that the released 28S bases are COI.
+specimen. It is not evidence that the deployed 28S bases are COI.
 
 ## Effect of CD-HIT and LCA reassignment
 
-The historical post-processing retained the representative sequence bases and
-accession while reassigning the representative's taxID and rendered lineage to
-the last common ancestor of all cluster members. That explains why the header
-contains a COI rendering and why member accessions may disappear, but it
-cannot turn 28S, COX2, COX3, CYTB, ATP6, or ND sequences into COI sequence.
-The marker determination here therefore concerns the retained representative
-bases and is independent of the cluster's taxonomic LCA.
+The historical post-processing retained the deployed representative sequence
+bases and accession while reassigning the representative's taxID and rendered
+lineage to the last common ancestor of all cluster members. That explains why
+the header contains a COI rendering and why member accessions may disappear,
+but it cannot turn 28S, COX2, COX3, CYTB, ATP6, or ND sequences into COI
+sequence. The marker determination here therefore concerns the deployed
+representative bases and is independent of the cluster's taxonomic LCA.
 
 ## Disposition and release consequence
 
-All 15 records are outside the COI marker and should be excluded from the next
-corrected semantic release. Together they account for 12,465 bases. Applying
-these exclusions in addition to the 29 v1 exclusions would produce 791,389
-records and 485,432,240 bases before any other change.
+All 15 records are outside the COI marker and are excluded from corrected v1.
+Together they account for 12,465 bases. Combined with the 29 earlier
+correctness-first exclusions, corrected v1 contains 791,389 records and
+485,432,240 bases.
 
-This is a biological-content correction, not a packaging retry. It requires a
-new semantic database version, regenerated FASTA and BLAST artifacts, new
-provenance and hashes, and a separately reviewed RTBioScan activation/state
-identity migration. The frozen v1 directory remains unchanged as the exact
-historical record. Publication from this repository must not publish the v1
-bytes as the current corrected COI reference.
+This is a biological-content correction, not a packaging retry. Corrected v1
+therefore uses regenerated FASTA and BLAST artifacts and replacement v1
+provenance and hashes. RTBioScan activation remains a separate review and must
+use a new state identity without reusing accumulated state from another
+reference identity.
 
 ## Reproduction outline
 
@@ -96,6 +97,8 @@ bytes as the current corrected COI reference.
    `coi_v1_marker_scope_audit.tsv`.
 
 The exact historical pre-clustering input and `.clstr` file remain unavailable,
-so this audit does not resolve participation of individual project sequences.
-That separate evidence limitation does not affect the marker identity of these
-15 retained representative sequences.
+so individual project-sequence participation cannot be independently replayed.
+The maintainer's construction account is accepted as attested history, making
+this a permanent independent-reconstruction limitation rather than a release
+hold. It does not affect the marker identity of these 15 deployed
+representative sequences.

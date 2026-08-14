@@ -17,36 +17,12 @@ from verify_reference_release import VerificationError, sha256_file, verify_rele
 
 
 EXPECTED_COMMITTED_METADATA_HASHES = {
-    "SHA256SUMS": "1d7ce977d4d72e61781ff0649dc0cd7f0036b9fbb14620e975c65b5c356699d0",
-    "rtbioscan_coi_canonical_v1_README.md": "13970f452ae8e4a3d413c0913529d75f557ab0bd9f11837fc8515e44f43abeca",
-    "rtbioscan_coi_canonical_v1_blastdb_provenance.tsv": "614a511a0ea485863115ad4ae97d0b1907aea1937c4a1131b1efd1ded5312eb5",
-    "rtbioscan_coi_canonical_v1_excluded_oids.tsv": "c47038a1d2b563c87ea89a760cd5323efb210f89a736bd9acb445c03cb79b744",
-    "rtbioscan_coi_canonical_v1_fasta_provenance.tsv": "b479ab7f47c46bee9f056271f19058cec9c34fb7e5cc4932b5679c91e360c69b",
+    "SHA256SUMS": "cb34edd316637086e048e4d5cad2d78e419d67d2444402b73eb2301f1194f7fd",
+    "rtbioscan_coi_canonical_v1_README.md": "61b2e6aba2239918655ee4322a04ab1470da5ef11d8c9dada26d3b21ac384532",
+    "rtbioscan_coi_canonical_v1_blastdb_provenance.tsv": "32280b579d07df9dde1d1560af178562adb214f5c6db1ced5654a558ff80a5a9",
+    "rtbioscan_coi_canonical_v1_excluded_oids.tsv": "ae59c7992caabe767845d60201e88d3842978c2dca801ea5b58381fabc27b04e",
+    "rtbioscan_coi_canonical_v1_fasta_provenance.tsv": "7f71bc5db319f5444c84388389ceba0e80de564d6c45a15e2fb64e9e193a5536",
 }
-
-FROZEN_SOURCE_COMMIT = "f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd"
-FROZEN_SOURCE_URLS = (
-    "https://github.com/funcomicscnb-cpu/RTBioScan/commit/" + FROZEN_SOURCE_COMMIT,
-    "https://github.com/funcomicscnb-cpu/RTBioScan/tree/"
-    + FROZEN_SOURCE_COMMIT
-    + "/conf/taxonomy_regression",
-    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
-    + FROZEN_SOURCE_COMMIT
-    + "/bin/build_taxonomy_canonical_fasta.py",
-    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
-    + FROZEN_SOURCE_COMMIT
-    + "/bin/build_taxonomy_canonical_blastdb.py",
-    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
-    + FROZEN_SOURCE_COMMIT
-    + "/bin/audit_taxonomy_reference_source_integrity.py",
-    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
-    + FROZEN_SOURCE_COMMIT
-    + "/bin/validate_taxonomy_reference_base_policy.py",
-    "https://github.com/funcomicscnb-cpu/RTBioScan/blob/"
-    + FROZEN_SOURCE_COMMIT
-    + "/conf/state_compatibility/reference_manifest_legacy_v1.tsv",
-)
-
 
 def write_gzip(path, content):
     with path.open("wb") as raw_handle:
@@ -253,16 +229,18 @@ class CommittedMetadataTests(unittest.TestCase):
         }
         self.assertEqual(observed, EXPECTED_COMMITTED_METADATA_HASHES)
 
-    def test_coi_v1_construction_sources_are_commit_pinned(self):
+    def test_coi_v1_construction_sources_are_repository_native(self):
         readme = (REPOSITORY_ROOT / "coi" / "README.md").read_text(encoding="utf-8")
-        observed = tuple(
-            re.findall(
-                r"https://github\.com/funcomicscnb-cpu/RTBioScan/"
-                r"(?:commit|tree|blob)/[^)\s]+",
-                readme,
-            )
+        links = tuple(re.findall(r"\[[^]]+\]\(([^)]+)\)", readme))
+        self.assertIn("source/v1/", links)
+        self.assertTrue((REPOSITORY_ROOT / "coi" / "source" / "v1").is_dir())
+        external_source_prefix = (
+            "https://github.com/funcomicscnb-cpu/RTBioScan/"
         )
-        self.assertEqual(observed, FROZEN_SOURCE_URLS)
+        self.assertFalse(
+            any(link.startswith(external_source_prefix) for link in links),
+            "construction source links must not delegate authority to the pipeline repo",
+        )
 
 
 if __name__ == "__main__":

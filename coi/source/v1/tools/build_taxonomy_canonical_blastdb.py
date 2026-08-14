@@ -31,29 +31,15 @@ import audit_taxonomy_reference_source_integrity as source_audit
 
 SCHEMA = "taxonomy_reference_canonical_blastdb_v1"
 TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
-EXPECTED_POLICY_ROWS = {
-    (
-        "priority",
-        "confirmed",
-        "confirmed_reference_sequence_contamination",
-        "quarantine",
-        "confirmed_contamination_exclusion",
-    ),
-    (
-        "review",
-        "cross_family_sequence_label_conflict_candidate",
-        "cross_family_sequence_label_conflict_candidate",
-        "quarantine",
-        "correctness_first_conservative_conflict_exclusion",
-    ),
-    (
-        "review",
-        "unresolved_insufficient_local_discriminator",
-        "unresolved_insufficient_local_discriminator",
-        "retain",
-        "preserve_uncertainty",
-    ),
-}
+RELEASE_POLICY_FIELDS = [
+    "policy_id",
+    "source_tier",
+    "source_status",
+    "evidence_class",
+    "release_action",
+    "decision_basis",
+]
+REQUIRED_MARKER_EVIDENCE = "confirmed_non_coi_marker"
 
 
 def die(message: str) -> "None":
@@ -132,6 +118,148 @@ def parse_positive_int(value: str, label: str, allow_zero: bool = False) -> int:
     return parsed
 
 
+def provenance_count(
+    values: dict[tuple[str, str], str],
+    artifact: str,
+    label: str,
+    allow_zero: bool = False,
+) -> int:
+    return parse_positive_int(
+        values.get(("count", artifact), ""),
+        f"{label} {artifact}",
+        allow_zero=allow_zero,
+    )
+
+
+def validate_release_policy(
+    path: Path,
+    policy_id: str,
+) -> dict[tuple[str, str], tuple[str, str, str]]:
+    fields, rows = read_tsv(path)
+    if fields != RELEASE_POLICY_FIELDS or not rows:
+        die("unexpected or empty release-policy schema")
+    mappings: dict[tuple[str, str], tuple[str, str, str]] = {}
+    evidence_classes: set[str] = set()
+    for row in rows:
+        if row["policy_id"] != policy_id:
+            die("release policy contains an unexpected policy ID")
+        key = (row["source_tier"], row["source_status"])
+        mapped = (
+            row["evidence_class"],
+            row["release_action"],
+            row["decision_basis"],
+        )
+        if not all((*key, *mapped)):
+            die("release policy contains an empty mapping field")
+        if key in mappings:
+            die(f"release policy mapping is not unique: {key}")
+        if row["release_action"] != "quarantine":
+            die("active release policy must contain quarantine actions only")
+        mappings[key] = mapped
+        evidence_classes.add(row["evidence_class"])
+    if REQUIRED_MARKER_EVIDENCE not in evidence_classes:
+        die(f"release policy lacks required evidence class: {REQUIRED_MARKER_EVIDENCE}")
+    return mappings
+
+
+def validate_disposition_rows(
+    manifest_path: Path,
+    quarantine_path: Path,
+    provenance: dict[tuple[str, str], str],
+    policy_id: str,
+    policy_mappings: dict[tuple[str, str], tuple[str, str, str]],
+) -> tuple[int, int, dict[str, int], set[tuple[str, str, str]]]:
+    fields, rows = read_tsv(manifest_path)
+    required_fields = {
+        "reference_id",
+        "reference_sequence_sha256",
+        "stored_taxid",
+        "source_tier",
+        "source_status",
+        "evidence_class",
+        "release_action",
+        "decision_basis",
+        "policy_id",
+    }
+    if not rows or not required_fields.issubset(fields):
+        die("unexpected or empty disposition manifest")
+
+    quarantine_fields, quarantine_rows = read_tsv(quarantine_path)
+    if quarantine_fields != fields or quarantine_rows != rows:
+        die("all-quarantine projection does not exactly match disposition manifest")
+
+    seen_ids: set[str] = set()
+    identities: set[tuple[str, str, str]] = set()
+    used_policy_keys: set[tuple[str, str]] = set()
+    evidence_counts: Counter[str] = Counter()
+    for row in rows:
+        reference_id = row["reference_id"]
+        sequence_sha = row["reference_sequence_sha256"]
+        stored_taxid = row["stored_taxid"]
+        if (
+            not reference_id
+            or reference_id in seen_ids
+            or any(character.isspace() for character in reference_id)
+            or "|" in reference_id
+        ):
+            die(f"invalid or duplicate disposition reference ID: {reference_id}")
+        seen_ids.add(reference_id)
+        if not re.fullmatch(r"[0-9a-f]{64}", sequence_sha) or not re.fullmatch(
+            r"-?[0-9]+", stored_taxid
+        ):
+            die(f"invalid disposition identity: {reference_id}")
+        identity = (reference_id, stored_taxid, sequence_sha)
+        if identity in identities:
+            die(f"duplicate disposition identity: {reference_id}")
+        identities.add(identity)
+        if row["policy_id"] != policy_id:
+            die(f"disposition policy ID mismatch: {reference_id}")
+        policy_key = (row["source_tier"], row["source_status"])
+        expected_mapping = policy_mappings.get(policy_key)
+        observed_mapping = (
+            row["evidence_class"],
+            row["release_action"],
+            row["decision_basis"],
+        )
+        if expected_mapping is None or observed_mapping != expected_mapping:
+            die(f"disposition does not match release policy: {reference_id}")
+        if row["release_action"] != "quarantine":
+            die(f"active disposition is not quarantine: {reference_id}")
+        used_policy_keys.add(policy_key)
+        evidence_counts[row["evidence_class"]] += 1
+
+    unused_policy_keys = sorted(set(policy_mappings) - used_policy_keys)
+    if unused_policy_keys:
+        die(f"release policy contains unused mappings: {unused_policy_keys}")
+    if evidence_counts[REQUIRED_MARKER_EVIDENCE] == 0:
+        die(f"disposition lacks required evidence class: {REQUIRED_MARKER_EVIDENCE}")
+
+    quarantine_records = provenance_count(
+        provenance, "quarantine_records", "disposition provenance"
+    )
+    retain_records = provenance_count(
+        provenance,
+        "retain_records",
+        "disposition provenance",
+        allow_zero=True,
+    )
+    all_records = provenance_count(
+        provenance, "all_disposition_records", "disposition provenance"
+    )
+    if all_records != len(rows) or quarantine_records != len(rows):
+        die("disposition provenance record counts do not match the manifest")
+    if retain_records != 0:
+        die("active disposition provenance must record zero retained dispositions")
+    for evidence_class, count in sorted(evidence_counts.items()):
+        if provenance_count(
+            provenance,
+            evidence_class,
+            "disposition provenance",
+        ) != count:
+            die(f"disposition evidence count mismatch: {evidence_class}")
+    return quarantine_records, retain_records, dict(evidence_counts), identities
+
+
 def path_is_within(path: Path, parent: Path) -> bool:
     try:
         path.relative_to(parent)
@@ -168,9 +296,7 @@ class Expectations:
     canonical_sha256: str
     quarantine_records: int
     retain_records: int
-    confirmed_records: int
-    conflict_records: int
-    unresolved_records: int
+    evidence_counts: dict[str, int]
     excluded: dict[int, dict[str, str]]
 
 
@@ -333,80 +459,43 @@ def validate_policy_chain(args: argparse.Namespace) -> Expectations:
         args.quarantine_projection,
         "disposition provenance",
     )
-    require_file_sha(
+    require_value(
         disposition,
-        "retained_projection",
-        args.retained_projection,
+        ("schema", ""),
+        "taxonomy_reference_disposition_v1",
         "disposition provenance",
     )
+    policy_mappings = validate_release_policy(args.release_policy, release_policy_id)
+    (
+        quarantine_records,
+        retain_records,
+        evidence_counts,
+        disposition_identities,
+    ) = validate_disposition_rows(
+        args.disposition_manifest,
+        args.quarantine_projection,
+        disposition,
+        release_policy_id,
+        policy_mappings,
+    )
 
-    release_fields, release_rows = read_tsv(args.release_policy)
-    if release_fields != [
-        "policy_id",
-        "source_tier",
-        "source_status",
-        "evidence_class",
-        "release_action",
-        "decision_basis",
-    ]:
-        die("unexpected release-policy schema")
-    observed_policy_rows = {
-        (
-            row["source_tier"],
-            row["source_status"],
-            row["evidence_class"],
-            row["release_action"],
-            row["decision_basis"],
+    for values, label in (
+        (construction, "construction provenance"),
+        (base_policy, "base policy"),
+    ):
+        count_key = (
+            "disposition_records"
+            if label == "construction provenance"
+            else "disposition_records_in_base"
         )
-        for row in release_rows
-        if row["policy_id"] == release_policy_id
-    }
-    if len(release_rows) != 3 or observed_policy_rows != EXPECTED_POLICY_ROWS:
-        die("selected correctness-first release policy is unexpected")
-
-    _, manifest_rows = read_tsv(args.disposition_manifest)
-    actions = Counter(row.get("release_action", "") for row in manifest_rows)
-    evidence = Counter(row.get("evidence_class", "") for row in manifest_rows)
-    expected_counts = {
-        "quarantine": parse_positive_int(
-            disposition.get(("count", "quarantine_records"), ""),
-            "quarantine records",
-        ),
-        "retain": parse_positive_int(
-            disposition.get(("count", "retain_records"), ""),
-            "retain records",
-        ),
-        "confirmed": parse_positive_int(
-            disposition.get(
-                ("count", "confirmed_reference_sequence_contamination"), ""
-            ),
-            "confirmed records",
-        ),
-        "conflict": parse_positive_int(
-            disposition.get(
-                ("count", "cross_family_sequence_label_conflict_candidate"), ""
-            ),
-            "conflict records",
-        ),
-        "unresolved": parse_positive_int(
-            disposition.get(
-                ("count", "unresolved_insufficient_local_discriminator"), ""
-            ),
-            "unresolved records",
-        ),
-    }
-    if actions != Counter(
-        {"quarantine": expected_counts["quarantine"], "retain": expected_counts["retain"]}
-    ):
-        die("disposition action counts do not match selected policy provenance")
-    if evidence != Counter(
-        {
-            "confirmed_reference_sequence_contamination": expected_counts["confirmed"],
-            "cross_family_sequence_label_conflict_candidate": expected_counts["conflict"],
-            "unresolved_insufficient_local_discriminator": expected_counts["unresolved"],
-        }
-    ):
-        die("disposition evidence counts do not match selected policy provenance")
+        require_value(values, ("count", count_key), str(quarantine_records), label)
+        require_value(
+            values,
+            ("count", "disposition:quarantine"),
+            str(quarantine_records),
+            label,
+        )
+        require_value(values, ("count", "disposition:retain"), "0", label)
 
     records = parse_positive_int(
         construction.get(("count", "canonical_records"), ""),
@@ -420,10 +509,26 @@ def validate_policy_chain(args: argparse.Namespace) -> Expectations:
     if not re.fullmatch(r"[0-9a-f]{64}", canonical_sha):
         die("invalid canonical FASTA SHA-256 in construction provenance")
     excluded = read_excluded(args.excluded_oids)
-    if len(excluded) != expected_counts["quarantine"]:
+    if len(excluded) != quarantine_records:
         die("excluded-OID count does not match selected policy")
     if construction.get(("count", "excluded_legacy_oids")) != str(len(excluded)):
         die("excluded-OID count does not match construction provenance")
+    excluded_identities = {
+        (
+            row["reference_id"],
+            row["stored_taxid"],
+            row["reference_sequence_sha256"],
+        )
+        for row in excluded.values()
+    }
+    if excluded_identities != disposition_identities:
+        die("excluded-OID identities do not match the active disposition manifest")
+    require_value(
+        base_policy,
+        ("count", "projected_canonical_records"),
+        str(records),
+        "base policy",
+    )
 
     return Expectations(
         args.release_id,
@@ -432,11 +537,9 @@ def validate_policy_chain(args: argparse.Namespace) -> Expectations:
         records,
         bases,
         canonical_sha,
-        expected_counts["quarantine"],
-        expected_counts["retain"],
-        expected_counts["confirmed"],
-        expected_counts["conflict"],
-        expected_counts["unresolved"],
+        quarantine_records,
+        retain_records,
+        evidence_counts,
         excluded,
     )
 
@@ -805,9 +908,6 @@ def provenance_text(
         ("count", "canonical_bases", expected.bases),
         ("count", "disposition:quarantine", expected.quarantine_records),
         ("count", "disposition:retain", expected.retain_records),
-        ("count", "evidence:confirmed_contamination", expected.confirmed_records),
-        ("count", "evidence:cross_family_conflict", expected.conflict_records),
-        ("count", "evidence:unresolved", expected.unresolved_records),
         ("count", "index_components", len(components)),
         ("count", "index_volumes", metadata["number-of-volumes"]),
         ("tool", "makeblastdb", versions["makeblastdb"]),
@@ -825,9 +925,10 @@ def provenance_text(
         ("sha256", "disposition_manifest", sha256_file(args.disposition_manifest)),
         ("sha256", "disposition_provenance", sha256_file(args.disposition_provenance)),
         ("sha256", "quarantine_projection", sha256_file(args.quarantine_projection)),
-        ("sha256", "retained_projection", sha256_file(args.retained_projection)),
         ("sha256", "fixed_artifact_component_set", component_set_sha),
     ]
+    for evidence_class, count in sorted(expected.evidence_counts.items()):
+        rows.append(("count", f"evidence:{evidence_class}", count))
     for component, size, checksum in components:
         rows.append(("component_bytes", component.name, size))
         rows.append(("component_sha256", component.name, checksum))
@@ -870,7 +971,6 @@ def validate_paths(args: argparse.Namespace) -> tuple[Path, Path]:
         args.disposition_manifest,
         args.disposition_provenance,
         args.quarantine_projection,
-        args.retained_projection,
         args.base_policy,
     ]
     for input_path in regular_inputs:
@@ -1004,7 +1104,6 @@ def main() -> int:
     parser.add_argument("--disposition-manifest", type=Path, required=True)
     parser.add_argument("--disposition-provenance", type=Path, required=True)
     parser.add_argument("--quarantine-projection", type=Path, required=True)
-    parser.add_argument("--retained-projection", type=Path, required=True)
     parser.add_argument("--base-policy", type=Path, required=True)
     parser.add_argument("--reference-root", type=Path, required=True)
     parser.add_argument("--legacy-blast-database", type=Path, required=True)
