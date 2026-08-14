@@ -74,8 +74,10 @@ LCA taxID, and rendered lineage as separate provenance fields.
 The audit does not establish the exact historical pre-clustering pool, the
 complete CD-HIT command line, or membership of individual 98% clusters. Those
 questions require the original inputs, run log, or `.clstr` output. The
-construction chronology also remains unresolved because a later loose FASTA
-contains project-labelled records that are absent from the earlier deployed
-BLAST index. Marker scope remains under review because 15 retained identifiers
-explicitly name markers other than COI. These two issues, rather than the
-40,318 target-region substrings, are the remaining publication hold.
+later loose FASTA has since been classified as a malformed post-deployment
+append and cannot establish the construction pool. Marker scope has also been
+resolved: sequence-level evidence confirms that all 15 retained identifiers
+which name other markers are outside COI. See the
+[`July artifact chronology audit`](coi_v1_july_artifact_chronology.md) and
+[`marker-scope audit`](coi_v1_marker_scope_audit.md). These later findings,
+rather than the 40,318 target-region substrings, now define the release path.
