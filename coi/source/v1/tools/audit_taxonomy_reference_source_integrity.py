@@ -773,7 +773,7 @@ def provenance_text(
     ]
     for anomaly_class in sorted(anomaly_counts):
         rows.append(("count", f"anomaly:{anomaly_class}", str(anomaly_counts[anomaly_class])))
-    for action in sorted(disposition_actions):
+    for action in ("quarantine", "retain"):
         rows.append(("count", f"disposition:{action}", str(disposition_actions[action])))
     rows.extend(
         [

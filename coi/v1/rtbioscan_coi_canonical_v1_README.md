@@ -1,97 +1,83 @@
 # RTBioScan canonical COI reference database v1
 
-## Origin
+## Origin and construction basis
 
-This release was derived from the RTBioScan downstream COI BLAST database
-`COInr98_2024Jun_RioNegro_Brazil`. Its public-data foundation was created
-following the COInr/mkCOInr approach described by:
+This release is derived from the exact deployed RTBioScan downstream COI
+BLAST record stream, `COInr98_2024Jun_RioNegro_Brazil`. Its public-data
+foundation follows the COInr/mkCOInr approach described by:
 
 Meglécz, E. (2023). COInr and mkCOInr: Building and customizing a
 nonredundant barcoding reference database from BOLD and NCBI using a
-semi-automated pipeline. *Molecular Ecology Resources*, 23(4), 933-945.
+semi-automated pipeline. *Molecular Ecology Resources*, 23(4), 933–945.
 <https://doi.org/10.1111/1755-0998.13756>
 
-COInr integrates COI records from NCBI and BOLD into a coherent taxonomic
-system. Its source-level quality controls include selecting COI records;
-rejecting sequences outside 100-2,000 nucleotides or with more than five
-consecutive internal `N` bases; excluding unsuitable NCBI environmental,
-metagenomic, intron-bearing, or non-COI records; requiring valid Latin taxon
-names; assigning coherent taxIDs to BOLD lineages; and removing taxonomically
-redundant substrings within taxa.
+The maintainer attests that the public records and barcode sequences generated
+by the project formed the input pool clustered with CD-HIT at 98% nucleotide
+identity. Each retained representative was assigned to the last common
+ancestor of the records in its cluster. Project-generated COI records are
+ordinary retained records in this release; they are not segregated into an
+unresolved tier.
 
-## Project-specific customization
+The exact historical pre-clustering input, command log, and CD-HIT `.clstr`
+file are unavailable. Individual historical cluster membership therefore
+cannot be independently reconstructed. This is a recorded limitation of the
+attested construction history, not an open release hold. Artifact identity,
+record exclusions, counts, hashes, and rebuilt BLAST content are independently
+machine-verified from the preserved deployed components.
 
-The COInr-derived records were supplemented with barcode sequences generated
-by the project. The combined collection was clustered with CD-HIT at 98%
-nucleotide identity. Each representative was assigned to the last common
-ancestor of the records in its cluster. This reduces database redundancy and
-limits sensitivity to the stochastic selection of a representative sequence.
+## Correctness-first exclusion policy
 
-## Additional reliability review
+The deployed source contains 791,433 records and 485,462,968 bases. Corrected
+v1 excludes exactly 44 records after matching reference ID, stored taxID, and
+sequence SHA-256. The generated exclusion table also records each source OID
+and sequence length:
 
-The canonical release was generated from the exact deployed legacy BLAST OID
-stream rather than by slicing its companion raw FASTA. The source components
-and complete record stream were verified against frozen hashes before
-construction.
+- 5 independently confirmed reference-sequence contamination records;
+- 24 cross-family sequence/label conflicts excluded conservatively without
+  asserting which endpoint was biologically incorrect; and
+- 15 sequence-confirmed non-COI records: one 28S record and mitochondrial
+  COX2, COX3, CYTB, ATP6, ND1, ND2, ND3, ND4L, ND4, ND5, and ND6 records.
 
-Potentially unreliable entries were screened in two evidence tiers. Candidate
-discovery required at least 85% nucleotide identity and 80% shorter-sequence
-coverage against the frozen audit controls; priority evidence required at
-least 97% identity and 90% coverage. The subsequent local review classified a
-cross-family sequence/label conflict only at 95% identity and 80% coverage or
-greater.
-
-The final correctness-first review considered 44 specifically identified
-records:
-
-- 5 records with independently confirmed reference-sequence contamination
-  were excluded;
-- 24 records with cross-family sequence/label conflicts were conservatively
-  excluded without asserting which endpoint was biologically incorrect; and
-- 15 unresolved records were retained because the available evidence did not
-  support a reliable exclusion.
-
-All other source records were retained unchanged. This stage performed no
-implicit deduplication, taxonomic relabeling, sequence repair, or reordering.
-Every exclusion was applied only after the reference ID, stored taxID, and
-sequence SHA-256 matched its frozen disposition record exactly.
+The 15 marker-scope alignments cover 100% of each query and are documented
+in the versioned marker-scope audit. All nonlisted source records are retained
+unchanged. The filter performs no implicit deduplication, taxonomic relabeling,
+sequence repair, or reordering.
 
 ## Result
 
-- Canonical records: 791,404
-- Canonical bases: 485,444,705
-- Excluded source records: 29
-- Canonical FASTA SHA-256:
-  `d0b3aca535fbadcd0da8dfc7218c08e7b4151c9562ffe3fd37baf6cdcaef1775`
 - Release identifier: `rtbioscan_coi_canonical_v1`
+- Canonical records: 791,389
+- Canonical bases: 485,432,240
+- Excluded source records: 44
+- Excluded bases: 30,728
+- Canonical FASTA SHA-256:
+  `c36e99b0cca2760f25155aee5762af4c17eacdb19ad4a5af5195b8f2678784a7`
 
-The release includes the compressed canonical FASTA, a fixed eight-component
-BLAST database, construction and index provenance, and the excluded legacy-OID
-table. The provenance files define the exact input identities, filtering
-decisions, record counts, build tools, and artifact hashes.
+The bundle contains the compressed canonical FASTA, a fixed eight-component
+BLAST database, construction and index provenance, the exact excluded-OID
+table, and `SHA256SUMS`. The BLAST index was built with BLAST 2.15.0 and its
+complete exported record stream was verified against the canonical FASTA.
 
-## Artifact identity and integrity
+## Publication and integrity
 
-`rtbioscan_coi_canonical_v1` is the semantic database release identifier. The
-GitHub tag `taxonomy-reference-coi-canonical-v1` denotes its first publication
-revision. If the same semantic release ever needs corrected packaging, later
-publication tags use `taxonomy-reference-coi-canonical-v1-rN`, where `N` is an
-integer greater than 1. A publication revision does not by itself define new
-database content.
+The publication home is `funcomicscnb-cpu/RTBioScan-reference-databases`, and
+the immutable release tag is `taxonomy-reference-coi-canonical-v1`. The tag
+pins the repository-native
+construction sources and release metadata. `SHA256SUMS` defines the exact
+transport inventory for every other release asset.
 
-The provenance committed at the release tag defines the canonical database
-identity. In particular, it pins the decompressed FASTA SHA-256 and the hashes
-and fixed-build fingerprint of the eight BLAST components. `SHA256SUMS` is the
-transport inventory for every uploaded release asset other than
-`SHA256SUMS` itself. A valid download must have the exact documented inventory,
-satisfy every `SHA256SUMS` entry, and agree with the committed provenance. If
-any of those checks disagree, reject the bundle and investigate; do not choose
-one source as an override.
+A valid download must have the exact documented inventory, pass every
+transport checksum, match the decompressed FASTA identity and counts, and
+match the fixed BLAST-component fingerprint recorded in provenance. Reject
+and investigate any disagreement; no identity source overrides another.
 
-The fixed BLAST container is intended to be transported and verified, not
-rebuilt during installation. A rebuilt index can encode the same canonical
-FASTA while having different container bytes and therefore requires separately
-reviewed provenance before activation.
+Fixed BLAST components are transported and verified rather than rebuilt during
+installation. A rebuild can preserve biological content while changing
+container bytes and therefore does not have the fixed release fingerprint.
+
+Publication does not activate this database in RTBioScan. Pipeline activation
+requires separate qualification and a new state identity; accumulated state
+from another reference identity must not be migrated into it.
 
 ## License
 

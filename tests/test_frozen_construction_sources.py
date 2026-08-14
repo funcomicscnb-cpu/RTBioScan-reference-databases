@@ -3,95 +3,75 @@ import hashlib
 import re
 import tempfile
 import unittest
+from collections import Counter
 from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = REPOSITORY_ROOT / "coi" / "source" / "v1"
 MANIFEST = SOURCE_ROOT / "SOURCE_MANIFEST.tsv"
-SOURCE_REPOSITORY = "https://github.com/funcomicscnb-cpu/RTBioScan"
-SOURCE_COMMIT = "f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd"
 MANIFEST_FIELDS = [
     "provenance_key",
-    "source_repository",
-    "source_commit",
-    "source_path",
     "archived_path",
     "sha256",
 ]
 PROVENANCE_LOCATIONS = {
-    "release_policy": (("blastdb", "release_policy"),),
+    "release_policy": (
+        ("blastdb", "release_policy"),
+        ("disposition", "release_policy"),
+    ),
+    "base_quarantine": (("disposition", "base_quarantine"),),
     "base_policy": (("blastdb", "base_policy"), ("fasta", "base_policy")),
     "disposition_manifest": (
         ("blastdb", "disposition_manifest"),
         ("fasta", "disposition_manifest"),
+        ("disposition", "disposition_manifest"),
     ),
     "disposition_provenance": (
         ("blastdb", "disposition_provenance"),
         ("fasta", "disposition_provenance"),
     ),
-    "quarantine_projection": (("blastdb", "quarantine_projection"),),
-    "retained_projection": (("blastdb", "retained_projection"),),
+    "quarantine_projection": (
+        ("blastdb", "quarantine_projection"),
+        ("disposition", "quarantine_projection"),
+    ),
+    "marker_scope_audit": (("disposition", "marker_scope_audit"),),
     "source_integrity_anomalies": (("fasta", "source_integrity_anomalies"),),
     "source_integrity_provenance": (("fasta", "source_integrity_provenance"),),
     "legacy_reference_manifest": (("fasta", "legacy_reference_manifest"),),
+    "corrected_disposition_builder_script": (
+        ("disposition", "corrected_disposition_builder_script"),
+    ),
     "fasta_builder_script": (("fasta", "builder_script"),),
     "blastdb_builder_script": (("blastdb", "builder_script"),),
     "source_index_auditor_script": (("fasta", "source_index_auditor_script"),),
     "base_policy_validator_script": (("fasta", "base_policy_validator_script"),),
 }
-EXPECTED_PATHS = {
-    "release_policy": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_release_policy_v1.tsv",
-        "coi/source/v1/policy/release_policy.tsv",
-    ),
-    "base_policy": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_base_repair_policy_v1.tsv",
-        "coi/source/v1/policy/base_policy.tsv",
-    ),
-    "disposition_manifest": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_disposition_v1.tsv",
-        "coi/source/v1/policy/disposition.tsv",
-    ),
-    "disposition_provenance": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_disposition_v1_provenance.tsv",
-        "coi/source/v1/policy/disposition_provenance.tsv",
-    ),
-    "quarantine_projection": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_quarantine_v1.tsv",
-        "coi/source/v1/policy/quarantine_projection.tsv",
-    ),
-    "retained_projection": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_retained_unresolved_v1.tsv",
-        "coi/source/v1/policy/retained_projection.tsv",
-    ),
-    "source_integrity_anomalies": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_source_integrity_v1.tsv",
-        "coi/source/v1/audit/source_integrity.tsv",
-    ),
+EXPECTED_ARCHIVED_PATHS = {
+    "release_policy": "coi/source/v1/policy/release_policy.tsv",
+    "base_quarantine": "coi/source/v1/policy/base_quarantine.tsv",
+    "base_policy": "coi/source/v1/policy/base_policy.tsv",
+    "disposition_manifest": "coi/source/v1/policy/disposition.tsv",
+    "disposition_provenance": "coi/source/v1/policy/disposition_provenance.tsv",
+    "quarantine_projection": "coi/source/v1/policy/quarantine_projection.tsv",
+    "marker_scope_audit": "coi/source/v1/audit/marker_scope_audit.tsv",
+    "source_integrity_anomalies": "coi/source/v1/audit/source_integrity.tsv",
     "source_integrity_provenance": (
-        "conf/taxonomy_regression/chain_a_downstream_coi_source_integrity_v1_provenance.tsv",
-        "coi/source/v1/audit/source_integrity_provenance.tsv",
+        "coi/source/v1/audit/source_integrity_provenance.tsv"
     ),
-    "legacy_reference_manifest": (
-        "conf/state_compatibility/reference_manifest_legacy_v1.tsv",
-        "coi/source/v1/legacy/reference_manifest_legacy.tsv",
+    "legacy_reference_manifest": "coi/source/v1/legacy/reference_manifest_legacy.tsv",
+    "corrected_disposition_builder_script": (
+        "coi/source/v1/tools/build_coi_v1_corrected_disposition.py"
     ),
-    "fasta_builder_script": (
-        "bin/build_taxonomy_canonical_fasta.py",
-        "coi/source/v1/tools/build_taxonomy_canonical_fasta.py",
-    ),
+    "fasta_builder_script": "coi/source/v1/tools/build_taxonomy_canonical_fasta.py",
     "blastdb_builder_script": (
-        "bin/build_taxonomy_canonical_blastdb.py",
-        "coi/source/v1/tools/build_taxonomy_canonical_blastdb.py",
+        "coi/source/v1/tools/build_taxonomy_canonical_blastdb.py"
     ),
     "source_index_auditor_script": (
-        "bin/audit_taxonomy_reference_source_integrity.py",
-        "coi/source/v1/tools/audit_taxonomy_reference_source_integrity.py",
+        "coi/source/v1/tools/audit_taxonomy_reference_source_integrity.py"
     ),
     "base_policy_validator_script": (
-        "bin/validate_taxonomy_reference_base_policy.py",
-        "coi/source/v1/tools/validate_taxonomy_reference_base_policy.py",
+        "coi/source/v1/tools/validate_taxonomy_reference_base_policy.py"
     ),
 }
 
@@ -126,15 +106,19 @@ def archive_inventory(source_root):
         source_root / "README.md",
         source_root / "SOURCE_MANIFEST.tsv",
     }
-    return {
-        path.relative_to(source_root)
-        for path in source_root.rglob("*")
-        if path.is_file() and path not in root_controls
-    }
+    inventory = set()
+    for path in source_root.rglob("*"):
+        if not path.is_file() or path in root_controls:
+            continue
+        relative = path.relative_to(source_root)
+        if "__pycache__" in relative.parts and path.suffix in {".pyc", ".pyo"}:
+            continue
+        inventory.add(relative)
+    return inventory
 
 
 class FrozenConstructionSourceTests(unittest.TestCase):
-    def test_manifest_is_complete_and_commit_pinned(self):
+    def test_manifest_is_complete_and_repository_native(self):
         fields, rows = read_manifest()
         self.assertEqual(fields, MANIFEST_FIELDS)
         self.assertEqual(len(rows), len(PROVENANCE_LOCATIONS))
@@ -143,24 +127,18 @@ class FrozenConstructionSourceTests(unittest.TestCase):
             set(PROVENANCE_LOCATIONS),
         )
         self.assertEqual(
-            {row["source_repository"] for row in rows},
-            {SOURCE_REPOSITORY},
-        )
-        self.assertEqual({row["source_commit"] for row in rows}, {SOURCE_COMMIT})
-        self.assertEqual(
-            {
-                row["provenance_key"]: (
-                    row["source_path"],
-                    row["archived_path"],
-                )
-                for row in rows
-            },
-            EXPECTED_PATHS,
+            {row["provenance_key"]: row["archived_path"] for row in rows},
+            EXPECTED_ARCHIVED_PATHS,
         )
         self.assertEqual(
             len({row["archived_path"] for row in rows}),
             len(rows),
         )
+        for row in rows:
+            archived = Path(row["archived_path"])
+            self.assertFalse(archived.is_absolute())
+            self.assertNotIn("..", archived.parts)
+            self.assertEqual(archived.parts[:3], ("coi", "source", "v1"))
 
     def test_archived_inventory_and_hashes_match_manifest(self):
         _, rows = read_manifest()
@@ -200,7 +178,29 @@ class FrozenConstructionSourceTests(unittest.TestCase):
                 },
             )
 
-    def test_archived_hashes_match_frozen_release_provenance(self):
+    def test_archive_inventory_ignores_only_python_runtime_cache(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source_root = Path(temporary)
+            cache = source_root / "tools" / "__pycache__"
+            cache.mkdir(parents=True)
+            (cache / "builder.cpython-38.pyc").write_bytes(b"runtime cache")
+            (cache / "builder.cpython-38.pyo").write_bytes(b"runtime cache")
+            (cache / "unexpected.txt").write_text(
+                "must remain visible\n", encoding="utf-8"
+            )
+            (source_root / "tools" / "stray.pyc").write_bytes(
+                b"not inside __pycache__"
+            )
+
+            self.assertEqual(
+                archive_inventory(source_root),
+                {
+                    Path("tools/__pycache__/unexpected.txt"),
+                    Path("tools/stray.pyc"),
+                },
+            )
+
+    def test_archived_hashes_match_bound_provenance(self):
         metadata = REPOSITORY_ROOT / "coi" / "v1"
         provenance = {
             "blastdb": read_provenance(
@@ -208,6 +208,9 @@ class FrozenConstructionSourceTests(unittest.TestCase):
             ),
             "fasta": read_provenance(
                 metadata / "rtbioscan_coi_canonical_v1_fasta_provenance.tsv"
+            ),
+            "disposition": read_provenance(
+                SOURCE_ROOT / "policy" / "disposition_provenance.tsv"
             ),
         }
         _, rows = read_manifest()
@@ -218,6 +221,83 @@ class FrozenConstructionSourceTests(unittest.TestCase):
                     by_key[key]["sha256"],
                     provenance[provenance_name][("sha256", artifact)],
                 )
+
+    def test_active_exclusions_match_marker_audit_and_release_metadata(self):
+        def rows(path):
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                return list(csv.DictReader(handle, delimiter="\t"))
+
+        dispositions = rows(SOURCE_ROOT / "policy" / "disposition.tsv")
+        marker_audit = rows(SOURCE_ROOT / "audit" / "marker_scope_audit.tsv")
+        excluded = rows(
+            REPOSITORY_ROOT
+            / "coi"
+            / "v1"
+            / "rtbioscan_coi_canonical_v1_excluded_oids.tsv"
+        )
+        disposition_by_identity = {
+            (
+                row["reference_id"],
+                row["stored_taxid"],
+                row["reference_sequence_sha256"],
+            ): row
+            for row in dispositions
+        }
+        excluded_by_identity = {
+            (
+                row["reference_id"],
+                row["stored_taxid"],
+                row["reference_sequence_sha256"],
+            ): row
+            for row in excluded
+        }
+        marker_identities = {
+            (
+                row["reference_id"],
+                row["stored_taxid"],
+                row["reference_sequence_sha256"],
+            )
+            for row in marker_audit
+        }
+
+        self.assertEqual(len(dispositions), 44)
+        self.assertEqual(len(excluded), 44)
+        self.assertEqual(len(marker_identities), 15)
+        self.assertEqual(
+            sum(int(row["sequence_length"]) for row in marker_audit),
+            12465,
+        )
+        self.assertEqual(set(disposition_by_identity), set(excluded_by_identity))
+        self.assertTrue(marker_identities.issubset(disposition_by_identity))
+        for row in marker_audit:
+            identity = (
+                row["reference_id"],
+                row["stored_taxid"],
+                row["reference_sequence_sha256"],
+            )
+            disposition = disposition_by_identity[identity]
+            release_exclusion = excluded_by_identity[identity]
+            self.assertEqual(disposition["evidence_class"], "confirmed_non_coi_marker")
+            self.assertEqual(disposition["release_action"], "quarantine")
+            self.assertEqual(release_exclusion["legacy_oid"], row["legacy_oid"])
+            self.assertEqual(release_exclusion["sequence_length"], row["sequence_length"])
+        self.assertEqual(
+            Counter(row["evidence_class"] for row in dispositions),
+            Counter(
+                {
+                    "confirmed_reference_sequence_contamination": 5,
+                    "cross_family_sequence_label_conflict_candidate": 24,
+                    "confirmed_non_coi_marker": 15,
+                }
+            ),
+        )
+        self.assertEqual(
+            {row["release_action"] for row in dispositions},
+            {"quarantine"},
+        )
+        self.assertFalse(
+            any("unresolved" in row["source_status"] for row in dispositions)
+        )
 
     def test_archive_contains_no_database_or_pipeline_runtime_artifacts(self):
         forbidden_suffixes = {

@@ -1,22 +1,37 @@
-# Frozen COI v1 construction sources
+# COI v1 construction sources
 
-This directory preserves byte-exact copies of the version-controlled policy,
-audit, construction, and legacy-manifest inputs referenced by the COI v1
-release provenance. The copies originate from RTBioScan commit
-`f7f2d44ec1ad6c4d9a89a8d3040e7c0106dba7fd`.
+This directory is the repository-native source snapshot for corrected COI v1.
+It preserves the version-controlled policy, audit, construction, and legacy
+identity controls used to build the release. The immutable release tag pins
+these files in the same repository as the release metadata.
 
-[`SOURCE_MANIFEST.tsv`](SOURCE_MANIFEST.tsv) maps each provenance key to its
-original repository path, clean archived path, and SHA-256. Tests compare the
-archived bytes both with that manifest and with the immutable hashes in the
-COI v1 FASTA and BLAST provenance files.
+[`SOURCE_MANIFEST.tsv`](SOURCE_MANIFEST.tsv) maps every provenance key to its
+archived path and SHA-256. Tests require the manifest inventory to be exact,
+verify every archived byte against its declared hash, and compare those hashes
+with the applicable construction and release provenance. No external branch
+or mutable pipeline working tree is an identity authority for this snapshot.
 
-These files are an audit snapshot, not a supported standalone build package.
-They do not contain the legacy BLAST database, its canonical record stream,
-the canonical FASTA, or the released BLAST components. Reconstructing the
-database still requires the separately identified legacy inputs and qualified
-external tools.
+The corrected disposition is assembled from the 29 existing reliability
+exclusions and the 15 sequence-confirmed non-COI records. It contains 44
+quarantine actions and no retained-unresolved partition. Project-generated COI
+records are handled by the ordinary rule for nonlisted records: retain them
+unchanged. The repository-native assembler validates the marker-audit record
+identities and the frozen source FASTA before writing the combined disposition
+and its provenance.
 
-The snapshot contains no RTBioScan runtime, workflow, routing, activation, or
-state-management code. Historical internal identifiers remain unchanged
-inside the byte-exact files; the clean archive filenames are the public
-project structure.
+The maintainer's description of the pre-clustering pool and 98% CD-HIT/LCA
+procedure is accepted as attested construction history. Machine verification
+starts from the preserved deployed BLAST component identities and covers
+policy bindings, record identities, exclusions, output counts, hashes, and
+the rebuilt BLAST record stream. The unavailable historical `.clstr` file is
+therefore an independent-reconstruction limitation, not a pending source
+requirement.
+
+These files are construction controls, not a standalone database package.
+They do not contain the deployed legacy BLAST database, its canonical record
+stream, the corrected FASTA, or released BLAST components. Rebuilding still
+requires the separately identified legacy inputs and qualified external tools.
+
+The snapshot contains no RTBioScan workflow, routing, activation, or
+state-management code. Publishing the database from this repository does not
+activate it in the pipeline.

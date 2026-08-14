@@ -1,11 +1,11 @@
 # COI v1 July artifact chronology audit
 
-Status: surviving July 18 artifacts classified; historical cluster membership
-remains unresolved.
+Status: surviving July 18 artifacts classified; independent reconstruction of
+historical cluster membership is unavailable.
 
 This audit establishes the relationship between the COI BLAST index deployed
 on July 7, 2024 and a loose FASTA plus derivative index created on July 18,
-2024. It does not change the frozen COI v1 metadata or any released sequence.
+2024. The July 18 files are not construction inputs for corrected COI v1.
 
 ## Artifact identities
 
@@ -72,6 +72,9 @@ sequences participated in the earlier July 7 clustering run. They also do not
 disprove the maintainer's construction record that project sequences supplied
 through an earlier input artifact were included before clustering: such member
 accessions can be absent from a representative-only FASTA after taxonomic LCA
-reassignment. That claim can be independently resolved only by recovering the
-historical pre-clustering input, command log, or CD-HIT `.clstr` membership
-file. Until then, individual project-sequence participation remains unverified.
+reassignment. Individual membership could be independently replayed only if
+the historical pre-clustering input, command log, or CD-HIT `.clstr`
+membership file were recovered. In their absence, the maintainer's
+construction account is accepted as attested history rather than
+machine-reconstructed provenance. This is a permanent evidence limitation,
+not a release blocker.
