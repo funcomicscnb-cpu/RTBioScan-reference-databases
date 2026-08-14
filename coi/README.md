@@ -2,11 +2,11 @@
 
 The COI series is versioned independently from RTBioScan and from the ITS2
 series. Its active semantic identity is `rtbioscan_coi_canonical_v1`. The
-corrected v1 release candidate has been rebuilt and verified for immutable
-publication from this repository under tag
-`taxonomy-reference-coi-canonical-v1`. [`v1/`](v1/) is the publication
-metadata location; its release hashes are authoritative only when they match
-the complete verified bundle at the release tag.
+corrected v1 was published from this repository as an
+[immutable release on 2026-08-14](https://github.com/funcomicscnb-cpu/RTBioScan-reference-databases/releases/tag/taxonomy-reference-coi-canonical-v1)
+under tag `taxonomy-reference-coi-canonical-v1`. [`v1/`](v1/) is the
+publication metadata location; its release hashes are authoritative only when
+they match the complete verified bundle at the release tag.
 
 ## Construction basis
 

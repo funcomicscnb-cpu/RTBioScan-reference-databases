@@ -15,7 +15,7 @@ bundle is content-addressed by metadata committed at its tag.
 
 | Marker | Current semantic release | Repository metadata | Status |
 | --- | --- | --- | --- |
-| COI | `rtbioscan_coi_canonical_v1` | [`coi/v1/`](coi/v1/) | Corrected v1 release candidate; artifact verified, immutable publication pending |
+| COI | `rtbioscan_coi_canonical_v1` | [`coi/v1/`](coi/v1/) | [Corrected immutable v1 published 2026-08-14](https://github.com/funcomicscnb-cpu/RTBioScan-reference-databases/releases/tag/taxonomy-reference-coi-canonical-v1) |
 | ITS2 | Not yet released | [`its2/`](its2/) | Method documented; artifacts pending |
 
 COI and ITS2 share this repository but remain independent release series. Each
