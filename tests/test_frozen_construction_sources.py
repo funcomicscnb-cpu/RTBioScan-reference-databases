@@ -106,11 +106,15 @@ def archive_inventory(source_root):
         source_root / "README.md",
         source_root / "SOURCE_MANIFEST.tsv",
     }
-    return {
-        path.relative_to(source_root)
-        for path in source_root.rglob("*")
-        if path.is_file() and path not in root_controls
-    }
+    inventory = set()
+    for path in source_root.rglob("*"):
+        if not path.is_file() or path in root_controls:
+            continue
+        relative = path.relative_to(source_root)
+        if "__pycache__" in relative.parts and path.suffix in {".pyc", ".pyo"}:
+            continue
+        inventory.add(relative)
+    return inventory
 
 
 class FrozenConstructionSourceTests(unittest.TestCase):
@@ -171,6 +175,28 @@ class FrozenConstructionSourceTests(unittest.TestCase):
                 {
                     Path("policy/README.md"),
                     Path("nested/SOURCE_MANIFEST.tsv"),
+                },
+            )
+
+    def test_archive_inventory_ignores_only_python_runtime_cache(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source_root = Path(temporary)
+            cache = source_root / "tools" / "__pycache__"
+            cache.mkdir(parents=True)
+            (cache / "builder.cpython-38.pyc").write_bytes(b"runtime cache")
+            (cache / "builder.cpython-38.pyo").write_bytes(b"runtime cache")
+            (cache / "unexpected.txt").write_text(
+                "must remain visible\n", encoding="utf-8"
+            )
+            (source_root / "tools" / "stray.pyc").write_bytes(
+                b"not inside __pycache__"
+            )
+
+            self.assertEqual(
+                archive_inventory(source_root),
+                {
+                    Path("tools/__pycache__/unexpected.txt"),
+                    Path("tools/stray.pyc"),
                 },
             )
 
